@@ -1,10 +1,28 @@
 language: generic
 sudo: required
+# require docker service
 services:
   - docker
-
+#build client image for testing
 before_install:
   - docker build -t initgrep/react-test -f ./client/Dockerfile.dev ./client
-
+#test the client
+#incase of having tests for other projects, we can use the same process
 script:
   - docker run -e CI=true initgrep/react-test npm test
+
+#after everything is successfull, we build the images for all the components
+after_success:
+  - docker build -t initgrep/multi-client ./client
+  - docker build -t initgrep/multi-nginx ./nginx
+  - docker build -t initgrep/multi-server ./server
+  - docker build -t initgrep/multi-worker ./worker
+
+  #Login to docker cli by env variables
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+
+  #take all the above images and push them to docker hub
+  - docker push initgrep/multi-client
+  - docker push initgrep/multi-nginx
+  - docker push initgrep/multi-server
+  - docker push initgrep/multi-worker
